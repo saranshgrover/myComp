@@ -12,150 +12,160 @@ import { LinearProgress } from '@material-ui/core'
 const drawerWidth = 240
 
 const useStyles = makeStyles(theme => ({
-  root: {
-    display: 'flex'
-  },
-  drawer: {
-    [theme.breakpoints.up('sm')]: {
-      width: drawerWidth,
-      flexShrink: 0
-    }
-  },
-  appBar: {
-    [theme.breakpoints.up('sm')]: {
-      width: `calc(100% - ${drawerWidth}px)`,
-      marginLeft: drawerWidth
-    }
-  },
-  menuButton: {
-    marginRight: theme.spacing(2),
-    [theme.breakpoints.up('sm')]: {
-      display: 'none'
-    }
-  },
-  toolbar: theme.mixins.toolbar,
-  drawerPaper: {
-    width: drawerWidth
-  },
-  content: {
-    flexGrow: 1,
-    padding: theme.spacing(3)
-  }
+	root: {
+		display: 'flex'
+	},
+	drawer: {
+		[theme.breakpoints.up('sm')]: {
+			width: drawerWidth,
+			flexShrink: 0
+		}
+	},
+	appBar: {
+		[theme.breakpoints.up('sm')]: {
+			width: `calc(100% - ${drawerWidth}px)`,
+			marginLeft: drawerWidth
+		}
+	},
+	menuButton: {
+		marginRight: theme.spacing(2),
+		[theme.breakpoints.up('sm')]: {
+			display: 'none'
+		}
+	},
+	toolbar: theme.mixins.toolbar,
+	drawerPaper: {
+		width: drawerWidth
+	},
+	content: {
+		flexGrow: 1,
+		padding: theme.spacing(3)
+	}
 }))
 
 function Dashboard({
-  match,
-  location,
-  history,
-  container,
-  mobileOpen,
-  setMobileOpen,
-  userInfo,
-  managableComps,
-  upcomingComps
+	match,
+	location,
+	history,
+	container,
+	mobileOpen,
+	setMobileOpen,
+	userInfo,
+	managableComps,
+	upcomingComps
 }) {
-  const classes = useStyles()
-  const onItemChange = text => {
-    setCurrentComponent(text)
-    history.push(`/competitions/${match.params.compId}/${text.toLowerCase()}/`)
-  }
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [currentComponent, setCurrentComponent] = useState('overview')
-  const [wcifPublic, setWcifPublic] = useState(null)
-  useEffect(() => {
-    getWcifPublic(match.params.compId)
-      .then(wcifPublic => setWcifPublic(wcifPublic))
-      .catch(err => setError(err.message))
-  }, [match.params.compId])
-  const [user, setUser] = useState(null)
-  useEffect(() => {
-    if (wcifPublic) {
-      const person = wcifPublic.persons.find(
-        person => person.wcaUserId === userInfo.me.id
-      )
-      person
-        ? person.roles.length > 0
-          ? setUser('admin')
-          : setUser('competitor')
-        : setUser('spectator')
-    }
-  }, [userInfo, wcifPublic])
-  const [wcif, setWcif] = useState(null)
-  useEffect(() => {
-    if (user === 'admin') {
-      getWcif(match.params.compId).then(wcif => {
-        setWcif(wcif)
-        setLoading(false)
-      })
-    } else {
-      setWcif(wcifPublic)
-      setLoading(false)
-    }
-  }, [user, match.params.compId, wcifPublic])
+	const classes = useStyles()
+	const onItemChange = text => {
+		// Normalize the text
+		text = text.replace(/\s/g, '').toLowerCase()
+		setCurrentComponent(text)
+		history.push(`/competitions/${match.params.compId}/${text}/`)
+	}
+	const [error, setError] = useState(null)
+	const [currentComponent, setCurrentComponent] = useState('overview')
+	const [wcif, setWcif] = useState(null)
+	const [user, setUser] = useState(null)
 
-  return (
-    <div className={classes.root}>
-      {error ? (
-        <Error message={error} />
-      ) : !user || loading ? (
-        <LinearProgress />
-      ) : (
-        <>
-          <CssBaseline />
-          <nav className={classes.drawer} aria-label='mailbox folders'>
-            <Hidden smUp implementation='css'>
-              <Drawer
-                container={container}
-                variant='temporary'
-                anchor={'left'}
-                open={mobileOpen}
-                onClose={setMobileOpen}
-                classes={{
-                  paper: classes.drawerPaper
-                }}
-                ModalProps={{
-                  keepMounted: true
-                }}
-              >
-                <div>
-                  <div className={classes.toolbar} />
-                  <DashboardList user={user} onClick={onItemChange} />
-                </div>
-              </Drawer>
-            </Hidden>
-            <Hidden xsDown implementation='css'>
-              <Drawer
-                classes={{
-                  paper: classes.drawerPaper
-                }}
-                variant='permanent'
-                open
-              >
-                <div>
-                  <div className={classes.toolbar} />
-                  <DashboardList user={user} onClick={onItemChange} />
-                </div>
-              </Drawer>
-            </Hidden>
-          </nav>
-          <main className={classes.content}>
-            {
-              <>
-                <Competition
-                  localWcif={wcif}
-                  history={history}
-                  user={user}
-                  compId={match.params.compId}
-                  userInfo={userInfo}
-                />
-              </>
-            }
-          </main>
-        </>
-      )}
-    </div>
-  )
+	useEffect(() => {
+		getWcifPublic(match.params.compId)
+			.then(wcifPublic => {
+				let user = ''
+				const person = wcifPublic.persons.find(
+					person => person.wcaUserId === userInfo.me.id
+				)
+				person
+					? person.roles.length > 0
+						? (user = 'admin')
+						: (user = 'competitor')
+					: (user = 'spectator')
+				if (user === 'admin') {
+					getWcif(match.params.compId)
+						.then(wcif => {
+							setUser(user)
+							setWcif(wcif)
+						})
+						.catch(err => setError(err.message))
+				} else {
+					setUser(user)
+					setWcif(wcifPublic)
+				}
+			})
+			.catch(err => setError(err.message))
+	}, [match.params.compId, userInfo.me.id])
+	return (
+		<div className={classes.root}>
+			{error ? (
+				<Error message={error} />
+			) : wcif === null ? (
+				<LinearProgress />
+			) : (
+				<>
+					<CssBaseline />
+					<nav
+						className={classes.drawer}
+						aria-label='mailbox folders'
+					>
+						<Hidden smUp implementation='css'>
+							<Drawer
+								container={container}
+								variant='temporary'
+								anchor={'left'}
+								open={mobileOpen}
+								onClose={setMobileOpen}
+								classes={{
+									paper: classes.drawerPaper
+								}}
+								ModalProps={{
+									keepMounted: true
+								}}
+							>
+								<div>
+									<div className={classes.toolbar} />
+									<DashboardList
+										wcif={wcif}
+										user={user}
+										onClick={onItemChange}
+									/>
+								</div>
+							</Drawer>
+						</Hidden>
+						<Hidden xsDown implementation='css'>
+							<Drawer
+								classes={{
+									paper: classes.drawerPaper
+								}}
+								variant='permanent'
+								open
+							>
+								<div>
+									<div className={classes.toolbar} />
+									<DashboardList
+										wcif={wcif}
+										user={user}
+										onClick={onItemChange}
+									/>
+								</div>
+							</Drawer>
+						</Hidden>
+					</nav>
+					<main className={classes.content}>
+						{
+							<>
+								<Competition
+									wcif={wcif}
+									setWcif={setWcif}
+									history={history}
+									user={user}
+									compId={match.params.compId}
+									userInfo={userInfo}
+								/>
+							</>
+						}
+					</main>
+				</>
+			)}
+		</div>
+	)
 }
 
 export default Dashboard

@@ -6,13 +6,24 @@ import * as serviceWorker from './serviceWorker'
 import { getMe } from './server/wca-api'
 import { isSignedIn } from './server/auth'
 import { initializeAuth } from './server/auth'
+import Error from './components/common/Error'
 initializeAuth()
 if (isSignedIn()) {
-  getMe().then(user => {
-    ReactDOM.render(<App userInfo={user} />, document.getElementById('root'))
-  })
+	getMe()
+		.then(user => {
+			ReactDOM.render(
+				<App userInfo={user} />,
+				document.getElementById('root')
+			)
+		})
+		.catch(err =>
+			ReactDOM.render(
+				<Error message={'Unable to fetch user'} />,
+				document.getElementById('root')
+			)
+		)
 } else {
-  ReactDOM.render(<App userInfo={{}} />, document.getElementById('root'))
+	ReactDOM.render(<App userInfo={{}} />, document.getElementById('root'))
 }
 
 // If you want your app to work offline and load faster, you can change
