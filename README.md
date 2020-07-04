@@ -1,3 +1,3 @@
-# myComp has been moved to [Nodus](github.com/saranshgrover/nodus)
+# myComp has been moved to [Nodus](https://github.com/saranshgrover/nodus)
 
 
